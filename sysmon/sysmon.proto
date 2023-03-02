@@ -1,0 +1,19 @@
+syntax = "proto3";
+package sysmon;
+
+import "google/protobuf/duration.proto";
+
+option go_package = "github.com/Xacor/go-sysmon/sysmonpb";
+
+service SysMon {
+    rpc GetStatistic(Request) returns (Statistic) {}
+}
+
+message Request {
+    google.protobuf.Duration refreshRate = 1;
+    google.protobuf.Duration refreshInterval = 2;
+}
+
+message Statistic {
+    int32 systemLoad = 1;
+}
