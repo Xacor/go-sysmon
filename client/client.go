@@ -3,10 +3,11 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"time"
 
-	pb "github.com/Xacor/go-sysmon/sysmon"
+	pb "github.com/Xacor/go-sysmon/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/protobuf/types/known/durationpb"
@@ -16,15 +17,24 @@ var (
 	serverAddr = flag.String("addr", "localhost:5000", "The server address in the format of host:port")
 )
 
-func printStat(client pb.SysMonClient, req *pb.Request) {
-	log.Println("Gettting system load...")
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func printSnaphots(client pb.SysMonClient, req *pb.Request) {
+	log.Println("Getting snapshot...")
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	stat, err := client.GetStatistic(ctx, req)
+	stream, err := client.GetSnapshot(ctx, req)
 	if err != nil {
-		log.Fatalf("client.etStatistic failed: %v", err)
+		log.Fatalf("client.GetSnapshot failed: %v", err)
 	}
-	log.Println(stat)
+	for {
+		snapshot, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("client.GetSnaphot failed: %v", err)
+		}
+		log.Printf("Received snapshot: %v", snapshot)
+	}
 
 }
 
@@ -38,5 +48,5 @@ func main() {
 	defer conn.Close()
 	client := pb.NewSysMonClient(conn)
 
-	printStat(client, &pb.Request{RefreshRate: durationpb.New(time.Second * 5), RefreshInterval: durationpb.New(time.Second * 10)})
+	printSnaphots(client, &pb.Request{RefreshRate: durationpb.New(time.Second * 3), RefreshInterval: durationpb.New(time.Second * 5)})
 }
