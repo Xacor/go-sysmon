@@ -15,5 +15,11 @@ message Request {
 }
 
 message Statistic {
-    int32 systemLoad = 1;
+    LoadAverage loadAverage = 1;
+}
+
+message LoadAverage {
+    float load1 = 1;
+    float load5 = 2;
+    float load15 = 3;
 }

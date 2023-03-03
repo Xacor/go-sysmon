@@ -27,7 +27,13 @@ type sysMonServer struct {
 
 func (s *sysMonServer) GetStatistic(ctx context.Context, req *pb.Request) (*pb.Statistic, error) {
 	log.Println("Received GetStatistic:", req.RefreshInterval, req.RefreshRate)
-	return &pb.Statistic{SystemLoad: 2}, nil
+	return &pb.Statistic{
+		LoadAverage: &pb.LoadAverage{
+			Load1:  1,
+			Load5:  5,
+			Load15: 15,
+		},
+	}, nil
 }
 
 func main() {
