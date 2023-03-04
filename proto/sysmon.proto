@@ -17,11 +17,24 @@ message Request {
 
 message Snapshot {
     LoadAverage loadAverage = 1;
-    google.protobuf.Timestamp timeCreated = 2;
+    ProcStat procStat = 2;
+    IOStat ioStat = 3;
+    google.protobuf.Timestamp timeCreated = 15;
 }
 
 message LoadAverage {
     float load1 = 1;
     float load5 = 2;
     float load15 = 3;
+}
+
+message ProcStat {
+    float  us = 1; 
+    float  sy = 2; 
+    float  id = 3; 
+}
+
+message IOStat {
+    float tps = 1;
+    float rwps = 2;
 }

@@ -34,3 +34,31 @@ func TestLoadAvg(t *testing.T) {
 		})
 	}
 }
+
+func TestProcStat(t *testing.T) {
+	type args struct {
+		src string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *pb.ProcStat
+		wantErr bool
+	}{
+		{"TestOK", args{src: "../testData/stat"}, &pb.ProcStat{Us: 1.6, Sy: 0.5, Id: 97.6}, false},
+		{"TestFileNotFound", args{src: "/qwerty"}, nil, true},
+		{"TestParseUintError", args{src: "../testData/badStat"}, nil, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ProcStat(tt.args.src)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ProcStat() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if !reflect.DeepEqual(got, tt.want) {
+				t.Errorf("ProcStat() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
