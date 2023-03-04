@@ -19,14 +19,14 @@ import (
 const _ = grpc.SupportPackageIsVersion7
 
 const (
-	SysMon_GetStatistic_FullMethodName = "/sysmon.SysMon/GetStatistic"
+	SysMon_GetSnapshot_FullMethodName = "/sysmon.SysMon/GetSnapshot"
 )
 
 // SysMonClient is the client API for SysMon service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type SysMonClient interface {
-	GetStatistic(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Statistic, error)
+	GetSnapshot(ctx context.Context, in *Request, opts ...grpc.CallOption) (SysMon_GetSnapshotClient, error)
 }
 
 type sysMonClient struct {
@@ -37,20 +37,43 @@ func NewSysMonClient(cc grpc.ClientConnInterface) SysMonClient {
 	return &sysMonClient{cc}
 }
 
-func (c *sysMonClient) GetStatistic(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Statistic, error) {
-	out := new(Statistic)
-	err := c.cc.Invoke(ctx, SysMon_GetStatistic_FullMethodName, in, out, opts...)
+func (c *sysMonClient) GetSnapshot(ctx context.Context, in *Request, opts ...grpc.CallOption) (SysMon_GetSnapshotClient, error) {
+	stream, err := c.cc.NewStream(ctx, &SysMon_ServiceDesc.Streams[0], SysMon_GetSnapshot_FullMethodName, opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
+	x := &sysMonGetSnapshotClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type SysMon_GetSnapshotClient interface {
+	Recv() (*Snapshot, error)
+	grpc.ClientStream
+}
+
+type sysMonGetSnapshotClient struct {
+	grpc.ClientStream
+}
+
+func (x *sysMonGetSnapshotClient) Recv() (*Snapshot, error) {
+	m := new(Snapshot)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // SysMonServer is the server API for SysMon service.
 // All implementations must embed UnimplementedSysMonServer
 // for forward compatibility
 type SysMonServer interface {
-	GetStatistic(context.Context, *Request) (*Statistic, error)
+	GetSnapshot(*Request, SysMon_GetSnapshotServer) error
 	mustEmbedUnimplementedSysMonServer()
 }
 
@@ -58,8 +81,8 @@ type SysMonServer interface {
 type UnimplementedSysMonServer struct {
 }
 
-func (UnimplementedSysMonServer) GetStatistic(context.Context, *Request) (*Statistic, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method GetStatistic not implemented")
+func (UnimplementedSysMonServer) GetSnapshot(*Request, SysMon_GetSnapshotServer) error {
+	return status.Errorf(codes.Unimplemented, "method GetSnapshot not implemented")
 }
 func (UnimplementedSysMonServer) mustEmbedUnimplementedSysMonServer() {}
 
@@ -74,22 +97,25 @@ func RegisterSysMonServer(s grpc.ServiceRegistrar, srv SysMonServer) {
 	s.RegisterService(&SysMon_ServiceDesc, srv)
 }
 
-func _SysMon_GetStatistic_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(Request)
-	if err := dec(in); err != nil {
-		return nil, err
+func _SysMon_GetSnapshot_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Request)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
 	}
-	if interceptor == nil {
-		return srv.(SysMonServer).GetStatistic(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: SysMon_GetStatistic_FullMethodName,
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(SysMonServer).GetStatistic(ctx, req.(*Request))
-	}
-	return interceptor(ctx, in, info, handler)
+	return srv.(SysMonServer).GetSnapshot(m, &sysMonGetSnapshotServer{stream})
+}
+
+type SysMon_GetSnapshotServer interface {
+	Send(*Snapshot) error
+	grpc.ServerStream
+}
+
+type sysMonGetSnapshotServer struct {
+	grpc.ServerStream
+}
+
+func (x *sysMonGetSnapshotServer) Send(m *Snapshot) error {
+	return x.ServerStream.SendMsg(m)
 }
 
 // SysMon_ServiceDesc is the grpc.ServiceDesc for SysMon service.
@@ -98,12 +124,13 @@ func _SysMon_GetStatistic_Handler(srv interface{}, ctx context.Context, dec func
 var SysMon_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "sysmon.SysMon",
 	HandlerType: (*SysMonServer)(nil),
-	Methods: []grpc.MethodDesc{
+	Methods:     []grpc.MethodDesc{},
+	Streams: []grpc.StreamDesc{
 		{
-			MethodName: "GetStatistic",
-			Handler:    _SysMon_GetStatistic_Handler,
+			StreamName:    "GetSnapshot",
+			Handler:       _SysMon_GetSnapshot_Handler,
+			ServerStreams: true,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
 	Metadata: "sysmon/sysmon.proto",
 }

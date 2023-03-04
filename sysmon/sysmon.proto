@@ -2,11 +2,12 @@ syntax = "proto3";
 package sysmon;
 
 import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
 
 option go_package = "github.com/Xacor/go-sysmon/sysmonpb";
 
 service SysMon {
-    rpc GetStatistic(Request) returns (Statistic) {}
+    rpc GetSnapshot(Request) returns (stream Snapshot) {}
 }
 
 message Request {
@@ -14,8 +15,9 @@ message Request {
     google.protobuf.Duration refreshInterval = 2;
 }
 
-message Statistic {
+message Snapshot {
     LoadAverage loadAverage = 1;
+    google.protobuf.Timestamp timeCreated = 2;
 }
 
 message LoadAverage {
