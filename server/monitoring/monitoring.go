@@ -2,15 +2,18 @@ package monitoring
 
 import (
 	"bufio"
+	"fmt"
 	"math"
 	"os"
 	"strconv"
 
 	pb "github.com/Xacor/go-sysmon/proto"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/structpb"
 )
 
-// LoadAvg parses values from src (usually /proc/loadavg) into protobuf LoadAverage and return it.
-func LoadAvg(src string) (*pb.LoadAverage, error) {
+// LoadAvg parses values from src (usually /proc/loadavg) into map[string]interface{} and returns it.
+func LoadAvg(src string) (map[string]any, error) {
 	file, err := os.Open(src)
 	if err != nil {
 		return nil, err
@@ -34,13 +37,37 @@ func LoadAvg(src string) (*pb.LoadAverage, error) {
 	}
 
 	file.Close()
-	return &pb.LoadAverage{Load1: buf[0], Load5: buf[1], Load15: buf[2]}, nil
+	return map[string]any{
+		"load1":  buf[0],
+		"load5":  buf[1],
+		"load15": buf[2],
+	}, nil
+}
+
+func MarshallLoadAvg(avg map[string]any) (*pb.LoadAverage, error) {
+
+	m, err := structpb.NewStruct(avg)
+	if err != nil {
+		return nil, fmt.Errorf("Error in marshallLoadAverage: %w", err)
+	}
+
+	bytes, err := m.MarshalJSON()
+	if err != nil {
+		return nil, fmt.Errorf("Error in marshallLoadAverage: %w", err)
+	}
+
+	avgpb := pb.LoadAverage{}
+	err = protojson.Unmarshal(bytes, &avgpb)
+	if err != nil {
+		return nil, fmt.Errorf("Error in marshallLoadAverage: %w", err)
+	}
+	return &avgpb, nil
 }
 
 // ProcStat parses values from src (usually /proc/stat) and returns protobuf ProcStat,
-// containing persantage for each cpu state.
+// containing percentage for each cpu state.
 // For more about cpu states see https://www.kernel.org/doc/Documentation/filesystems/proc.txt.
-func ProcStat(src string) (*pb.ProcStat, error) {
+func ProcStat(src string) (map[string]any, error) {
 	file, err := os.Open(src)
 	if err != nil {
 		return nil, err
@@ -75,9 +102,9 @@ func ProcStat(src string) (*pb.ProcStat, error) {
 
 	// It is ok if sum of all fields != 100%, because io-wait from /proc/stat is not reliable (see docs),
 	// and Floor is used for representation
-	return &pb.ProcStat{
-		Us: float32(math.Floor(us*10) / 10),
-		Sy: float32(math.Floor(sy*10) / 10),
-		Id: float32(math.Floor(id*10) / 10),
+	return map[string]any{
+		"us": float32(math.Floor(us*10) / 10),
+		"sy": float32(math.Floor(sy*10) / 10),
+		"id": float32(math.Floor(id*10) / 10),
 	}, nil
 }
