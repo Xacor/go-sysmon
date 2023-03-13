@@ -23,7 +23,7 @@ func TestLoadAvg(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := LoadAvg(tt.args.src)
+			got, err := GetLoadAvg(tt.args.src)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoadAvg() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -51,7 +51,7 @@ func TestProcStat(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := ProcStat(tt.args.src)
+			got, err := GetProcStat(tt.args.src)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ProcStat() error = %v, wantErr %v", err, tt.wantErr)
 				return

@@ -10,7 +10,7 @@ import (
 )
 
 // LoadAvg parses values from src (usually /proc/loadavg) into protobuf LoadAverage and return it.
-func LoadAvg(src string) (*pb.LoadAverage, error) {
+func GetLoadAvg(src string) (*pb.LoadAverage, error) {
 	file, err := os.Open(src)
 	if err != nil {
 		return nil, err
@@ -40,7 +40,7 @@ func LoadAvg(src string) (*pb.LoadAverage, error) {
 // ProcStat parses values from src (usually /proc/stat) and returns protobuf ProcStat,
 // containing persantage for each cpu state.
 // For more about cpu states see https://www.kernel.org/doc/Documentation/filesystems/proc.txt.
-func ProcStat(src string) (*pb.ProcStat, error) {
+func GetProcStat(src string) (*pb.ProcStat, error) {
 	file, err := os.Open(src)
 	if err != nil {
 		return nil, err
