@@ -63,12 +63,12 @@ func (s *sysMonServer) Run() {
 		c := StartPipeline(jobs...)
 
 		snapshot := <-c
+
 		s.mu.Lock()
-
-		log.Println("Appending snapshot:", snapshot)
 		s.snapshots = append(s.snapshots, snapshot)
-
 		s.mu.Unlock()
+
+		close(c)
 
 	}
 }
