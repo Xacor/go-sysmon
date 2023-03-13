@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"sync"
 	"time"
 
 	pb "github.com/Xacor/go-sysmon/proto"
-	"github.com/Xacor/go-sysmon/server/monitoring"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 var (
@@ -21,6 +22,9 @@ var (
 
 type sysMonServer struct {
 	pb.UnimplementedSysMonServer
+
+	mu       sync.Mutex
+	snapshot []pb.Snapshot
 }
 
 func (s *sysMonServer) GetSnapshot(req *pb.Request, stream pb.SysMon_GetSnapshotServer) error {
@@ -29,13 +33,10 @@ func (s *sysMonServer) GetSnapshot(req *pb.Request, stream pb.SysMon_GetSnapshot
 
 	for range ticker.C {
 		// Calculate snapshot and send it here
-
-		snapshot, err := s.CreateSnapshot()
-		if err != nil {
-			return err
-		}
-
-		err = stream.Send(snapshot)
+		err := stream.Send(&pb.Snapshot{
+			LoadAverage: &pb.LoadAverage{Load1: 1.5, Load5: 0.9, Load15: 0.9},
+			TimeCreated: timestamppb.New(time.Now()),
+		})
 		if err != nil {
 			return err
 		}
@@ -44,34 +45,15 @@ func (s *sysMonServer) GetSnapshot(req *pb.Request, stream pb.SysMon_GetSnapshot
 
 }
 
-func (s *sysMonServer) CreateSnapshot() (*pb.Snapshot, error) {
-
-	avg, err := monitoring.LoadAvg("/proc/loadavg")
-	if err != nil {
-		return nil, fmt.Errorf("CreateSnapshot: %w", err)
-	}
-
-	avgpb, err := monitoring.MarshallLoadAvg(avg)
-	if err != nil {
-		return nil, fmt.Errorf("CreateSnapshot: %w", err)
-	}
-
-	snapshot := pb.Snapshot{LoadAverage: avgpb}
-	return &snapshot, nil
-}
-
 func main() {
 	flag.Parse()
 	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", *port))
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
-
-	grpcServer := grpc.NewServer()
+	var opts []grpc.ServerOption
+	grpcServer := grpc.NewServer(opts...)
 	pb.RegisterSysMonServer(grpcServer, &sysMonServer{})
-
 	log.Println("Listening...")
-	if err := grpcServer.Serve(lis); err != nil {
-		log.Fatal(err)
-	}
+	grpcServer.Serve(lis)
 }
